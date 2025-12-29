@@ -1,0 +1,31 @@
+{
+  "name": "hummingbot-dashboard",
+  "version": "1.0.0",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"bun run tailwind:watch\" \"bun --hot index.ts\"",
+    "dev:server": "bun --hot index.ts",
+    "tailwind": "tailwindcss -i ./src/index.css -o ./public/styles.css",
+    "tailwind:watch": "tailwindcss -i ./src/index.css -o ./public/styles.css --watch",
+    "build": "bun run tailwind && bun build ./src/main.tsx --outdir ./dist",
+    "start": "bun index.ts"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.15.0",
+    "lucide-react": "^0.468.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "concurrently": "^9.1.0"
+  }
+}
