@@ -1,0 +1,9 @@
+[serve.development]
+# Disable development mode by default in production
+hmr = false
+console = false
+
+# Use production JSX runtime when NODE_ENV=production
+[define]
+"process.env.NODE_ENV" = "'production'"
+

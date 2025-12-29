@@ -32,10 +32,11 @@ COPY --from=builder /app/index.html ./
 COPY --from=builder /app/tsconfig.json ./
 COPY --from=builder /app/tailwind.config.js ./
 COPY --from=builder /app/postcss.config.js ./
+COPY --from=builder /app/bunfig.toml ./
 
 # Environment variables
 ENV NODE_ENV=production
-ENV API_BASE=http://34.64.187.136:8000
+ENV API_BASE=http://localhost:8000
 
 # Expose port
 EXPOSE 3000

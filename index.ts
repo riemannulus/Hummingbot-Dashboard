@@ -1,6 +1,6 @@
 import index from "./index.html";
 
-const API_BASE = process.env.API_BASE || "http://34.64.187.136:8000";
+const API_BASE = process.env.API_BASE || "http://localhost:8000";
 
 Bun.serve({
   port: 3000,
@@ -77,10 +77,13 @@ Bun.serve({
     return new Response("Not Found", { status: 404 });
   },
   
-  development: {
-    hmr: true,
-    console: true,
-  },
+  // Only enable development features in non-production
+  ...(process.env.NODE_ENV !== "production" && {
+    development: {
+      hmr: true,
+      console: true,
+    },
+  }),
 });
 
 console.log("🚀 Hummingbot Dashboard running at http://localhost:3000");
