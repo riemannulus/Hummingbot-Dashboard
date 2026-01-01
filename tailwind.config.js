@@ -21,6 +21,7 @@ export default {
           green: '#00d4aa',
           teal: '#14b8a6',
           emerald: '#10b981',
+          blue: '#3b82f6',
         },
         profit: '#22c55e',
         loss: '#ef4444',
