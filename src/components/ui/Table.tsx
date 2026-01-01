@@ -7,6 +7,8 @@ interface Column<T> {
   width?: string;
   align?: 'left' | 'center' | 'right';
   render?: (value: unknown, row: T, index: number) => React.ReactNode;
+  /** Hide this column on mobile (below md breakpoint) */
+  hideOnMobile?: boolean;
 }
 
 interface TableProps<T> {
@@ -35,14 +37,17 @@ export function Table<T>({
   };
 
   return (
-    <div className={cn('table-container', className)}>
-      <table className="table">
+    <div className={cn('table-container overflow-x-auto -mx-px', className)}>
+      <table className="table min-w-[600px] md:min-w-full">
         <thead>
           <tr>
             {columns.map((column) => (
               <th
                 key={column.key}
-                className={cn(alignClasses[column.align || 'left'])}
+                className={cn(
+                  alignClasses[column.align || 'left'],
+                  column.hideOnMobile && 'hidden md:table-cell'
+                )}
                 style={{ width: column.width }}
               >
                 {column.header}
@@ -55,7 +60,10 @@ export function Table<T>({
             Array.from({ length: 5 }).map((_, i) => (
               <tr key={i}>
                 {columns.map((column) => (
-                  <td key={column.key}>
+                  <td
+                    key={column.key}
+                    className={cn(column.hideOnMobile && 'hidden md:table-cell')}
+                  >
                     <div className="skeleton h-4 w-3/4" />
                   </td>
                 ))}
@@ -79,7 +87,10 @@ export function Table<T>({
                   return (
                     <td
                       key={column.key}
-                      className={cn(alignClasses[column.align || 'left'])}
+                      className={cn(
+                        alignClasses[column.align || 'left'],
+                        column.hideOnMobile && 'hidden md:table-cell'
+                      )}
                     >
                       {column.render
                         ? column.render(value, row, index)
@@ -106,10 +117,8 @@ interface DataRowProps {
 export function DataRow({ label, value, className }: DataRowProps) {
   return (
     <div className={cn('flex justify-between items-center py-2', className)}>
-      <span className="text-dark-400">{label}</span>
+      <span className="text-dark-400 text-sm">{label}</span>
       <span className="text-white font-medium">{value}</span>
     </div>
   );
 }
-
-

@@ -9,7 +9,7 @@ interface ModalProps {
   title?: string;
   description?: string;
   children: React.ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   showCloseButton?: boolean;
 }
 
@@ -42,14 +42,15 @@ export function Modal({
   if (!isOpen) return null;
 
   const sizes = {
-    sm: 'max-w-sm',
-    md: 'max-w-md',
-    lg: 'max-w-lg',
-    xl: 'max-w-xl',
+    sm: 'sm:max-w-sm',
+    md: 'sm:max-w-md',
+    lg: 'sm:max-w-lg',
+    xl: 'sm:max-w-xl',
+    '2xl': 'sm:max-w-2xl',
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm animate-fade-in"
@@ -59,25 +60,30 @@ export function Modal({
       {/* Modal */}
       <div
         className={cn(
-          'relative w-full mx-4 bg-dark-800 rounded-xl border border-dark-700 shadow-2xl animate-slide-up',
+          'relative w-full bg-dark-800 shadow-2xl animate-slide-up',
+          // Mobile: full width, bottom sheet style with top rounded corners
+          'rounded-t-xl max-h-[90vh]',
+          // Desktop: centered with all rounded corners
+          'sm:mx-4 sm:rounded-xl sm:max-h-[85vh]',
+          'border-t border-x sm:border border-dark-700',
           sizes[size]
         )}
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-start justify-between p-5 border-b border-dark-700">
-            <div>
+          <div className="flex items-start justify-between p-4 sm:p-5 border-b border-dark-700">
+            <div className="flex-1 min-w-0 pr-2">
               {title && (
-                <h2 className="text-lg font-semibold text-white">{title}</h2>
+                <h2 className="text-base sm:text-lg font-semibold text-white truncate">{title}</h2>
               )}
               {description && (
-                <p className="mt-1 text-sm text-dark-300">{description}</p>
+                <p className="mt-1 text-xs sm:text-sm text-dark-300 truncate">{description}</p>
               )}
             </div>
             {showCloseButton && (
               <button
                 onClick={onClose}
-                className="p-1 text-dark-400 hover:text-white rounded-lg hover:bg-dark-700 transition-colors"
+                className="p-1.5 text-dark-400 hover:text-white rounded-lg hover:bg-dark-700 transition-colors flex-shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -86,7 +92,9 @@ export function Modal({
         )}
 
         {/* Content */}
-        <div className="p-5">{children}</div>
+        <div className="p-4 sm:p-5 max-h-[calc(90vh-80px)] sm:max-h-[calc(85vh-80px)] overflow-y-auto">
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -119,14 +127,15 @@ export function ConfirmDialog({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
       <p className="text-dark-300 mb-6">{message}</p>
-      <div className="flex gap-3 justify-end">
-        <Button variant="secondary" onClick={onClose} disabled={isLoading}>
+      <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+        <Button variant="secondary" onClick={onClose} disabled={isLoading} className="w-full sm:w-auto">
           {cancelText}
         </Button>
         <Button
           variant={variant === 'danger' ? 'danger' : 'primary'}
           onClick={onConfirm}
           isLoading={isLoading}
+          className="w-full sm:w-auto"
         >
           {confirmText}
         </Button>
@@ -134,5 +143,3 @@ export function ConfirmDialog({
     </Modal>
   );
 }
-
-

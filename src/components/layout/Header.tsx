@@ -19,20 +19,28 @@ export function Header({
   onRefresh,
 }: HeaderProps) {
   return (
-    <header className="h-16 flex items-center justify-between px-6 bg-dark-800/50 border-b border-dark-700 backdrop-blur-sm sticky top-0 z-30">
+    <header
+      className={cn(
+        'flex items-center justify-between bg-dark-800/50 border-b border-dark-700 backdrop-blur-sm sticky z-20',
+        // Mobile: account for fixed mobile nav bar, smaller padding
+        'top-14 h-14 px-4',
+        // Desktop: normal positioning
+        'md:top-0 md:h-16 md:px-6'
+      )}
+    >
       {/* Title */}
-      <div>
-        <h1 className="text-xl font-semibold text-white">{title}</h1>
+      <div className="min-w-0 flex-1">
+        <h1 className="text-lg md:text-xl font-semibold text-white truncate">{title}</h1>
         {subtitle && (
-          <p className="text-sm text-dark-400">{subtitle}</p>
+          <p className="text-xs md:text-sm text-dark-400 truncate hidden sm:block">{subtitle}</p>
         )}
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-4">
-        {/* Last Updated */}
+      <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+        {/* Last Updated - hidden on mobile */}
         {lastUpdated && (
-          <span className="text-xs text-dark-400">
+          <span className="text-xs text-dark-400 hidden lg:inline">
             Updated {formatRelativeTime(lastUpdated)}
           </span>
         )}
@@ -58,13 +66,11 @@ export function Header({
           <span className="absolute top-1 right-1 w-2 h-2 bg-accent-green rounded-full" />
         </button>
 
-        {/* User */}
-        <button className="flex items-center gap-2 p-2 text-dark-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors">
+        {/* User - hidden on small mobile */}
+        <button className="hidden sm:flex items-center gap-2 p-2 text-dark-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors">
           <User className="w-4 h-4" />
         </button>
       </div>
     </header>
   );
 }
-
-

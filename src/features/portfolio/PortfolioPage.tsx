@@ -108,10 +108,10 @@ export function PortfolioPage() {
         onRefresh={refresh}
       />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Account Selector */}
         {accounts.length > 1 && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {accounts.map((account) => (
               <button
                 key={account}
@@ -130,7 +130,7 @@ export function PortfolioPage() {
         )}
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
           <Card>
             <div className="text-dark-400 text-sm mb-1">Total Value</div>
             <div className="text-2xl font-bold text-white tabular-nums">

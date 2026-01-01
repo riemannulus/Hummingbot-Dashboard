@@ -11,6 +11,7 @@ import {
   Target,
   Zap,
   RefreshCw,
+  Edit2,
 } from 'lucide-react';
 import { Header } from '../../components/layout/Header';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
@@ -22,6 +23,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { botsService } from '../../api';
 import { formatCurrency, formatPercentage, formatRelativeTime, cn } from '../../lib/utils';
 import type { BotStatus, BotDetailedHistory, BotControllerConfig, BotTrade } from '../../types/api';
+import { EditStrategyConfigModal } from './EditStrategyConfigModal';
 
 interface BotDetailPageProps {
   botName: string;
@@ -87,6 +89,7 @@ export function BotDetailPage({ botName, onBack }: BotDetailPageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
+  const [editingConfig, setEditingConfig] = useState<BotControllerConfig | null>(null);
 
   const fetchData = async () => {
     try {
@@ -255,7 +258,7 @@ export function BotDetailPage({ botName, onBack }: BotDetailPageProps) {
         onRefresh={handleRefresh}
       />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Back Button */}
         <Button variant="ghost" onClick={onBack}>
           <ArrowLeft className="w-4 h-4" />
@@ -263,7 +266,7 @@ export function BotDetailPage({ botName, onBack }: BotDetailPageProps) {
         </Button>
 
         {/* Status & Performance */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
           <Card>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-dark-700 flex items-center justify-center">
@@ -384,7 +387,7 @@ export function BotDetailPage({ botName, onBack }: BotDetailPageProps) {
           </TabsContent>
 
           <TabsContent value="config">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
               {configs.map((config) => (
                 <Card key={config.id}>
                   <CardHeader className="pb-4">
@@ -393,7 +396,17 @@ export function BotDetailPage({ botName, onBack }: BotDetailPageProps) {
                         <Settings className="w-5 h-5 text-accent-green" />
                         <CardTitle>{config.id}</CardTitle>
                       </div>
-                      <Badge variant="info">{config.controller_type}</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="info">{config.controller_type}</Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingConfig(config)}
+                          className="text-dark-400 hover:text-white"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
 
@@ -523,7 +536,7 @@ export function BotDetailPage({ botName, onBack }: BotDetailPageProps) {
               ))}
 
               {configs.length === 0 && (
-                <Card className="col-span-2">
+                <Card className="col-span-1 lg:col-span-2">
                   <div className="text-center py-8 text-dark-400">
                     No controller configurations found for this bot.
                   </div>
@@ -533,7 +546,7 @@ export function BotDetailPage({ botName, onBack }: BotDetailPageProps) {
           </TabsContent>
 
           <TabsContent value="stats">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {/* Trade Distribution */}
               <Card>
                 <CardHeader>
@@ -638,6 +651,20 @@ export function BotDetailPage({ botName, onBack }: BotDetailPageProps) {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Edit Strategy Config Modal */}
+      {editingConfig && (
+        <EditStrategyConfigModal
+          isOpen={!!editingConfig}
+          onClose={() => setEditingConfig(null)}
+          botName={botName}
+          config={editingConfig}
+          onSave={() => {
+            // Refresh data after saving
+            fetchData();
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -39,7 +39,7 @@ export function TabsList({ children, className }: TabsListProps) {
   return (
     <div
       className={cn(
-        'flex gap-1 p-1 bg-dark-800 rounded-lg border border-dark-700',
+        'flex gap-1 p-1 bg-dark-800 rounded-lg border border-dark-700 overflow-x-auto scrollbar-hide',
         className
       )}
     >
@@ -65,7 +65,7 @@ export function TabsTrigger({ value, children, className }: TabsTriggerProps) {
     <button
       onClick={() => setActiveTab(value)}
       className={cn(
-        'px-4 py-2 text-sm font-medium rounded-md transition-all duration-200',
+        'px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-all duration-200 whitespace-nowrap flex-shrink-0',
         isActive
           ? 'bg-dark-700 text-white'
           : 'text-dark-400 hover:text-white hover:bg-dark-700/50',
