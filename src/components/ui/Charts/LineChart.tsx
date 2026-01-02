@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   LineChart as RechartsLineChart,
   Line,
@@ -34,6 +34,40 @@ export function LineChart({
   formatValue = formatCurrency,
   formatLabel = formatTime,
 }: LineChartProps) {
+  // Calculate Y-axis domain focusing on stable range (excluding initial outliers)
+  const yDomain = useMemo((): [number, number] => {
+    if (!data || data.length === 0) return [0, 100];
+    
+    const values = data.map((d) => d[valueKey] as number).filter((v) => typeof v === 'number' && !isNaN(v));
+    if (values.length === 0) return [0, 100];
+    
+    const max = Math.max(...values);
+    const lastValue = values[values.length - 1];
+    
+    // Find the stable range: skip initial points that are significantly lower than current value
+    // (indicating portfolio startup phase)
+    const stableThreshold = lastValue * 0.5; // Consider values above 50% of last value as "stable"
+    const stableValues = values.filter((v) => v >= stableThreshold);
+    
+    let min: number;
+    if (stableValues.length > 0 && stableValues.length !== values.length) {
+      // There are outliers at the beginning - use stable range
+      min = Math.min(...stableValues);
+    } else {
+      // No significant outliers, use all data
+      min = Math.min(...values);
+    }
+    
+    const range = max - min;
+    
+    // Add 10% padding, minimum padding of 1% of max value
+    const padding = Math.max(range * 0.1, max * 0.01) || 10;
+    const domainMin = Math.max(0, min - padding);
+    const domainMax = max + padding;
+    
+    return [domainMin, domainMax];
+  }, [data, valueKey]);
+
   if (!data || data.length === 0) {
     return (
       <div
@@ -58,7 +92,6 @@ export function LineChart({
   };
 
   const ChartComponent = showArea ? AreaChart : RechartsLineChart;
-  const DataComponent = showArea ? Area : Line;
 
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -83,7 +116,9 @@ export function LineChart({
           tickLine={false}
           axisLine={false}
           tickFormatter={(value) => formatValue(value)}
-          width={60}
+          width={80}
+          domain={yDomain}
+          allowDataOverflow
         />
         <Tooltip content={<CustomTooltip />} />
         {showArea ? (
@@ -93,6 +128,7 @@ export function LineChart({
             stroke={color}
             strokeWidth={2}
             fill={`url(#gradient-${color.replace('#', '')})`}
+            isAnimationActive={false}
           />
         ) : (
           <Line
@@ -102,6 +138,7 @@ export function LineChart({
             strokeWidth={2}
             dot={false}
             activeDot={{ r: 4, fill: color }}
+            isAnimationActive={false}
           />
         )}
         <defs>
@@ -120,5 +157,3 @@ export function LineChart({
     </ResponsiveContainer>
   );
 }
-
-

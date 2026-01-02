@@ -1,14 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { LineChart } from '../../components/ui/Charts/LineChart';
 import { SkeletonChart } from '../../components/ui/Skeleton';
 import { formatCurrency } from '../../lib/utils';
+import { portfolioService } from '../../api';
+import { POLLING_INTERVALS } from '../../lib/constants';
 import type { PortfolioHistoryItem, PaginatedResponse, ProcessedHistoryItem } from '../../types/api';
-
-interface PortfolioChartProps {
-  history: PaginatedResponse<PortfolioHistoryItem> | null;
-  isLoading: boolean;
-}
 
 const timeRanges = [
   { label: '1D', value: '24h' },
@@ -17,6 +14,86 @@ const timeRanges = [
   { label: '3M', value: '90d' },
   { label: 'ALL', value: 'all' },
 ];
+
+// Get API parameters based on selected time range
+// API expects Unix timestamps in seconds (not milliseconds)
+function getRangeParams(range: string): { start_time?: number; end_time?: number; limit?: number } {
+  const nowSec = Math.floor(Date.now() / 1000);
+  const hourSec = 60 * 60;
+  const daySec = 24 * hourSec;
+  
+  switch (range) {
+    case '7d':
+      return { 
+        start_time: nowSec - 7 * daySec, 
+        end_time: nowSec,
+        limit: 100 
+      };
+    case '30d':
+      return { 
+        start_time: nowSec - 30 * daySec, 
+        end_time: nowSec,
+        limit: 100 
+      };
+    case '90d':
+      return { 
+        start_time: nowSec - 90 * daySec, 
+        end_time: nowSec,
+        limit: 100 
+      };
+    case 'all':
+      return { 
+        // Don't set start_time to get all history
+        end_time: nowSec,
+        limit: 200 
+      };
+    default: // '24h'
+      return { 
+        start_time: nowSec - daySec, 
+        end_time: nowSec,
+        limit: 100 
+      };
+  }
+}
+
+// Get appropriate date format based on time range
+function getDateFormatter(range: string): (ts: number) => string {
+  return (ts: number) => {
+    const date = new Date(ts);
+    
+    switch (range) {
+      case '24h':
+        return date.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        });
+      case '7d':
+        return date.toLocaleDateString('en-US', {
+          weekday: 'short',
+          hour: '2-digit',
+          hour12: false,
+        });
+      case '30d':
+      case '90d':
+        return date.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        });
+      case 'all':
+        return date.toLocaleDateString('en-US', {
+          month: 'short',
+          year: '2-digit',
+        });
+      default:
+        return date.toLocaleTimeString('en-US', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        });
+    }
+  };
+}
 
 // Process API response to calculate total portfolio value for each timestamp
 function processHistoryData(data: PortfolioHistoryItem[]): ProcessedHistoryItem[] {
@@ -43,8 +120,38 @@ function processHistoryData(data: PortfolioHistoryItem[]): ProcessedHistoryItem[
   }).sort((a, b) => a.timestamp - b.timestamp); // Sort by timestamp ascending
 }
 
-export function PortfolioChart({ history, isLoading }: PortfolioChartProps) {
+export function PortfolioChart() {
   const [selectedRange, setSelectedRange] = useState('24h');
+  const [history, setHistory] = useState<PaginatedResponse<PortfolioHistoryItem> | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const params = useMemo(() => getRangeParams(selectedRange), [selectedRange]);
+
+  const fetchHistory = useCallback(async () => {
+    try {
+      const result = await portfolioService.getHistory(params);
+      setHistory(result);
+    } catch (error) {
+      console.error('Failed to fetch portfolio history:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [params]);
+
+  // Fetch data when range changes
+  useEffect(() => {
+    setIsLoading(true);
+    fetchHistory();
+  }, [fetchHistory]);
+
+  // Set up polling
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchHistory();
+    }, POLLING_INTERVALS.PORTFOLIO * 2);
+
+    return () => clearInterval(intervalId);
+  }, [fetchHistory]);
 
   const chartData = useMemo(() => {
     if (!history?.data) return [];
@@ -57,7 +164,9 @@ export function PortfolioChart({ history, isLoading }: PortfolioChartProps) {
   const change = lastValue - firstValue;
   const changePercentage = firstValue > 0 ? (change / firstValue) * 100 : 0;
 
-  if (isLoading) {
+  const formatLabel = useMemo(() => getDateFormatter(selectedRange), [selectedRange]);
+
+  if (isLoading && !history) {
     return (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -118,16 +227,8 @@ export function PortfolioChart({ history, isLoading }: PortfolioChartProps) {
         showArea
         showGrid
         formatValue={formatCurrency}
-        formatLabel={(ts) => {
-          const date = new Date(ts);
-          return date.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false,
-          });
-        }}
+        formatLabel={formatLabel}
       />
     </Card>
   );
 }
-

@@ -14,7 +14,6 @@ interface DashboardPageProps {
 export function DashboardPage({ onNavigate }: DashboardPageProps) {
   const {
     distribution,
-    history,
     bots,
     trades,
     isLoading,
@@ -51,10 +50,7 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
         </div>
 
         {/* Portfolio Chart */}
-        <PortfolioChart
-          history={history}
-          isLoading={isLoading}
-        />
+        <PortfolioChart />
 
         {/* Bottom Row - Bots and Trades */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">

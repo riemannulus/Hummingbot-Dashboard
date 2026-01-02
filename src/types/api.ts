@@ -83,6 +83,7 @@ export interface PortfolioHistoryItem {
 export interface ProcessedHistoryItem {
   timestamp: number;
   value: number;
+  [key: string]: unknown;
 }
 
 export interface PortfolioDistributionRequest {
