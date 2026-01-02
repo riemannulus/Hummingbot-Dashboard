@@ -108,9 +108,7 @@ async function collectPortfolioSnapshots(): Promise<void> {
 
 /**
  * Run analysis with stored credentials
- * Note: For scheduled analysis, we need a way to make API calls.
- * Since we don't have stored credentials, we'll use a service account approach
- * or skip API calls and just use cached data.
+ * Fetches real data from Hummingbot API and uses Gemini for analysis
  */
 async function runScheduledAnalysis(): Promise<void> {
   if (!isGeminiConfigured()) {
@@ -139,37 +137,48 @@ async function runScheduledAnalysis(): Promise<void> {
     const client = getGeminiClient();
     setGeminiModel(settings.model);
 
-    // For scheduled analysis without auth, we create a summary based on last known data
-    // In a production setup, you'd want to use service account credentials
-    const lastAnalysis = await storage.getCachedAnalysis();
+    // Get auth header for API calls
+    const username = process.env.HB_API_USERNAME || "admin";
+    const password = process.env.HB_API_PASSWORD || "yjamtc167";
+    const authHeader = "Basic " + Buffer.from(`${username}:${password}`).toString("base64");
 
-    // Build a simple analysis request
+    // Fetch real data from Hummingbot API using tool registry
+    const portfolioState = await toolRegistry.execute(
+      "get_portfolio_state",
+      {},
+      { authHeader, username, apiBase: API_BASE }
+    );
+
+    const portfolioDistribution = await toolRegistry.execute(
+      "get_portfolio_distribution",
+      {},
+      { authHeader, username, apiBase: API_BASE }
+    );
+
+    const botsStatus = await toolRegistry.execute(
+      "get_bots_status",
+      {},
+      { authHeader, username, apiBase: API_BASE }
+    );
+
+    // Build data context with real data
+    const dataContext = `
+## 현재 포트폴리오 데이터
+
+### 포트폴리오 상태
+${JSON.stringify(portfolioState.data, null, 2)}
+
+### 토큰 분포
+${JSON.stringify(portfolioDistribution.data, null, 2)}
+
+### 봇 상태
+${JSON.stringify(botsStatus.data, null, 2)}
+`;
+
     const contents: GeminiContent[] = [
       {
         role: "user",
-        parts: [
-          {
-            text: lastAnalysis
-              ? `이전 분석 데이터를 기반으로 간략한 포트폴리오 상태 업데이트를 제공해주세요.
-
-이전 분석:
-- 요약: ${lastAnalysis.summary}
-- 포트폴리오 가치: $${lastAnalysis.portfolioValue.toLocaleString()}
-- 24시간 변화: ${lastAnalysis.change24h}%
-- 인사이트: ${lastAnalysis.insights.join(", ")}
-
-현재 시간 기준으로 주의사항이나 리마인더가 있다면 알려주세요.
-
-응답 형식 (JSON):
-{
-  "summary": "간단한 상태 요약",
-  "insights": ["인사이트1", "인사이트2"],
-  "portfolioValue": ${lastAnalysis.portfolioValue},
-  "change24h": ${lastAnalysis.change24h}
-}`
-              : ANALYSIS_PROMPT,
-          },
-        ],
+        parts: [{ text: dataContext + "\n\n" + ANALYSIS_PROMPT }],
       },
     ];
 
@@ -179,7 +188,7 @@ async function runScheduledAnalysis(): Promise<void> {
       generationConfig: {
         temperature: 0.5,
         topP: 0.9,
-        maxOutputTokens: 1024,
+        maxOutputTokens: 2048,
       },
     });
 
@@ -188,10 +197,10 @@ async function runScheduledAnalysis(): Promise<void> {
 
     // Parse JSON from response
     let analysisData = {
-      summary: lastAnalysis?.summary || "분석 데이터 없음",
-      insights: lastAnalysis?.insights || [],
-      portfolioValue: lastAnalysis?.portfolioValue || 0,
-      change24h: lastAnalysis?.change24h || 0,
+      summary: analysisText.slice(0, 200),
+      insights: [] as string[],
+      portfolioValue: 0,
+      change24h: 0,
     };
 
     try {
@@ -200,9 +209,9 @@ async function runScheduledAnalysis(): Promise<void> {
         const parsed = JSON.parse(jsonMatch[0]);
         analysisData = {
           summary: parsed.summary || analysisData.summary,
-          insights: parsed.insights || analysisData.insights,
-          portfolioValue: parsed.portfolioValue || analysisData.portfolioValue,
-          change24h: parsed.change24h || analysisData.change24h,
+          insights: parsed.insights || [],
+          portfolioValue: parsed.portfolioValue || 0,
+          change24h: parsed.change24h || 0,
         };
       }
     } catch {
