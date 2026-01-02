@@ -5,6 +5,7 @@ import { AssetDistribution } from './AssetDistribution';
 import { PortfolioChart } from './PortfolioChart';
 import { ActiveBotsWidget } from './ActiveBotsWidget';
 import { RecentTradesWidget } from './RecentTradesWidget';
+import { AISummaryCard } from '../ai';
 import { useDashboardData } from './hooks/useDashboardData';
 
 interface DashboardPageProps {
@@ -52,8 +53,8 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
         {/* Portfolio Chart */}
         <PortfolioChart />
 
-        {/* Bottom Row - Bots and Trades */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        {/* Bottom Row - Bots, Trades, and AI */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
           <ActiveBotsWidget
             bots={bots}
             isLoading={isLoading}
@@ -64,6 +65,7 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
             isLoading={isLoading}
             onViewAll={() => onNavigate('/trading')}
           />
+          <AISummaryCard />
         </div>
       </div>
     </div>

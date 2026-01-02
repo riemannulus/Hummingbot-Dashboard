@@ -5,6 +5,7 @@ import { PortfolioPage } from './features/portfolio';
 import { BotsPage, BotDetailPage } from './features/bots';
 import { TradingPage } from './features/trading';
 import { SettingsPage } from './features/settings';
+import { AIChat } from './features/ai';
 import { MainLayout } from './components/layout/MainLayout';
 import { AuthLayout } from './components/layout/AuthLayout';
 import { ROUTES } from './lib/constants';
@@ -103,13 +104,16 @@ function AppRouter() {
   };
 
   return (
-    <MainLayout
-      currentPath={currentPath}
-      onNavigate={navigate}
-      onLogout={logout}
-    >
-      {renderPage()}
-    </MainLayout>
+    <>
+      <MainLayout
+        currentPath={currentPath}
+        onNavigate={navigate}
+        onLogout={logout}
+      >
+        {renderPage()}
+      </MainLayout>
+      <AIChat />
+    </>
   );
 }
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Key, Server, Container, RefreshCw, Plus, Trash2, Play, Square } from 'lucide-react';
+import { Users, Key, Server, Container, RefreshCw, Plus, Trash2, Play, Square, Brain } from 'lucide-react';
 import { Header } from '../../components/layout/Header';
 import { Card, CardHeader, CardTitle, CardDescription } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -13,6 +13,7 @@ import { useLazyApi } from '../../hooks/useApi';
 import { accountsService, gatewayService, dockerService, connectorsService } from '../../api';
 import { formatRelativeTime } from '../../lib/utils';
 import { POLLING_INTERVALS } from '../../lib/constants';
+import { AISettingsTab } from './AISettingsTab';
 
 export function SettingsPage() {
   const [showAddAccount, setShowAddAccount] = useState(false);
@@ -105,6 +106,10 @@ export function SettingsPage() {
             <TabsTrigger value="connectors">Connectors</TabsTrigger>
             <TabsTrigger value="gateway">Gateway</TabsTrigger>
             <TabsTrigger value="docker">Docker</TabsTrigger>
+            <TabsTrigger value="ai">
+              <Brain className="w-4 h-4 mr-1" />
+              AI
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="accounts">
@@ -268,6 +273,10 @@ export function SettingsPage() {
                 />
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="ai">
+            <AISettingsTab />
           </TabsContent>
         </Tabs>
       </div>
