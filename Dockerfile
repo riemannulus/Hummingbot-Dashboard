@@ -27,12 +27,16 @@ RUN bun install --frozen-lockfile --production
 # Copy built assets and source files
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/src ./src
+COPY --from=builder /app/server ./server
 COPY --from=builder /app/index.ts ./
 COPY --from=builder /app/index.html ./
 COPY --from=builder /app/tsconfig.json ./
 COPY --from=builder /app/tailwind.config.js ./
 COPY --from=builder /app/postcss.config.js ./
 COPY --from=builder /app/bunfig.toml ./
+
+# Create data directory for SQLite database
+RUN mkdir -p /app/data
 
 # Environment variables
 ENV NODE_ENV=production

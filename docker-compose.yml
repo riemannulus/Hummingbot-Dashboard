@@ -7,9 +7,10 @@ services:
     container_name: hummingbot-dashboard
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
-      - API_BASE=${API_BASE:-http://localhost:8000}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/"]
@@ -17,4 +18,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 5s
+    volumes:
+      - dashboard-data:/app/data
+
+volumes:
+  dashboard-data:
 
