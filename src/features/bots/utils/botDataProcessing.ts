@@ -19,6 +19,10 @@ export interface TradeStats {
 export interface AggregatedPerformance {
   pnl: number;
   pnlPct: number;
+  realizedPnl: number;
+  realizedPnlPct: number;
+  unrealizedPnl: number;
+  unrealizedPnlPct: number;
   volume: number;
   controllers: Array<{ name: string } & Partial<ControllerPerformance>>;
 }
@@ -113,12 +117,20 @@ export function extractPerformance(status: BotStatus | null): AggregatedPerforma
 
   let totalPnl = 0;
   let totalPnlPct = 0;
+  let totalRealizedPnl = 0;
+  let totalRealizedPnlPct = 0;
+  let totalUnrealizedPnl = 0;
+  let totalUnrealizedPnlPct = 0;
   let totalVolume = 0;
 
   controllers.forEach(([, controller]) => {
     if (controller.performance) {
       totalPnl += controller.performance.global_pnl_quote || 0;
       totalPnlPct += controller.performance.global_pnl_pct || 0;
+      totalRealizedPnl += controller.performance.realized_pnl_quote || 0;
+      totalRealizedPnlPct += controller.performance.realized_pnl_pct || 0;
+      totalUnrealizedPnl += controller.performance.unrealized_pnl_quote || 0;
+      totalUnrealizedPnlPct += controller.performance.unrealized_pnl_pct || 0;
       totalVolume += controller.performance.volume_traded || 0;
     }
   });
@@ -126,6 +138,10 @@ export function extractPerformance(status: BotStatus | null): AggregatedPerforma
   return {
     pnl: totalPnl,
     pnlPct: totalPnlPct,
+    realizedPnl: totalRealizedPnl,
+    realizedPnlPct: totalRealizedPnlPct,
+    unrealizedPnl: totalUnrealizedPnl,
+    unrealizedPnlPct: totalUnrealizedPnlPct,
     volume: totalVolume,
     controllers: controllers.map(([name, c]) => ({
       name,

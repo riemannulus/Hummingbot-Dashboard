@@ -89,6 +89,28 @@ export function StatsTab({ stats, performance, trades }: StatsTabProps) {
         </CardHeader>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
+            <span className="text-dark-300">Realized PnL</span>
+            <span
+              className={cn(
+                'font-medium tabular-nums',
+                (performance?.realizedPnl || 0) >= 0 ? 'text-profit' : 'text-loss'
+              )}
+            >
+              {formatCurrency(performance?.realizedPnl || 0)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-dark-300">Unrealized PnL</span>
+            <span
+              className={cn(
+                'font-medium tabular-nums',
+                (performance?.unrealizedPnl || 0) >= 0 ? 'text-profit' : 'text-loss'
+              )}
+            >
+              {formatCurrency(performance?.unrealizedPnl || 0)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
             <span className="text-dark-300">Net PnL (after fees)</span>
             <span
               className={cn(
