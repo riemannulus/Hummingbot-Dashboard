@@ -40,6 +40,13 @@ export interface ToolCall {
   arguments: string;
 }
 
+export interface PortfolioSnapshot {
+  id?: number;
+  timestamp: number;
+  totalValueUsd: number;
+  stateJson: string; // JSON string of the full portfolio state
+}
+
 // ===================
 // Default Values
 // ===================
@@ -73,6 +80,10 @@ export interface IStorage {
   getChatHistory(limit?: number): Promise<ChatMessage[]>;
   saveChatMessage(message: Omit<ChatMessage, "id" | "createdAt">): Promise<void>;
   clearChatHistory(): Promise<void>;
+
+  // Portfolio Snapshots
+  savePortfolioSnapshot(snapshot: Omit<PortfolioSnapshot, "id">): Promise<void>;
+  getPortfolioHistory(startTime?: number, endTime?: number, limit?: number): Promise<PortfolioSnapshot[]>;
 }
 
 // ===================

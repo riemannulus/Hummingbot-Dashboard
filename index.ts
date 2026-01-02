@@ -81,6 +81,9 @@ Bun.serve({
       GET: storageRoutes.getChatHistory,
       DELETE: storageRoutes.clearChatHistory,
     },
+    "/storage/portfolio-history": {
+      GET: storageRoutes.getPortfolioHistory,
+    },
 
     // ===================
     // API Proxy to bypass CORS

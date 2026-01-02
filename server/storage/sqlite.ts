@@ -10,6 +10,7 @@ import type {
   CachedAnalysis,
   ChatMessage,
   ToolCall,
+  PortfolioSnapshot,
 } from "./interface";
 import { DEFAULT_AI_SETTINGS } from "./interface";
 
@@ -58,6 +59,16 @@ export class SQLiteStorage implements IStorage {
       
       CREATE INDEX IF NOT EXISTS idx_chat_history_created_at 
         ON chat_history(created_at DESC);
+
+      CREATE TABLE IF NOT EXISTS portfolio_snapshots (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp INTEGER NOT NULL,
+        total_value_usd REAL NOT NULL,
+        state_json TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_portfolio_snapshots_timestamp 
+        ON portfolio_snapshots(timestamp DESC);
     `);
 
     // Initialize default settings if not exists
@@ -272,6 +283,75 @@ export class SQLiteStorage implements IStorage {
 
   async clearChatHistory(): Promise<void> {
     this.db.exec("DELETE FROM chat_history");
+  }
+
+  // ===================
+  // Portfolio Snapshots
+  // ===================
+
+  async savePortfolioSnapshot(
+    snapshot: Omit<PortfolioSnapshot, "id">
+  ): Promise<void> {
+    const stmt = this.db.prepare(`
+      INSERT INTO portfolio_snapshots (timestamp, total_value_usd, state_json)
+      VALUES (?, ?, ?)
+    `);
+
+    stmt.run(snapshot.timestamp, snapshot.totalValueUsd, snapshot.stateJson);
+
+    // Keep only last 1000 snapshots (about 250 days at 6h intervals)
+    this.db.exec(`
+      DELETE FROM portfolio_snapshots 
+      WHERE id NOT IN (
+        SELECT id FROM portfolio_snapshots ORDER BY timestamp DESC LIMIT 1000
+      )
+    `);
+  }
+
+  async getPortfolioHistory(
+    startTime?: number,
+    endTime?: number,
+    limit: number = 100
+  ): Promise<PortfolioSnapshot[]> {
+    let query = "SELECT id, timestamp, total_value_usd, state_json FROM portfolio_snapshots";
+    const conditions: string[] = [];
+    const params: (number | string)[] = [];
+
+    if (startTime !== undefined) {
+      conditions.push("timestamp >= ?");
+      params.push(startTime);
+    }
+
+    if (endTime !== undefined) {
+      conditions.push("timestamp <= ?");
+      params.push(endTime);
+    }
+
+    if (conditions.length > 0) {
+      query += " WHERE " + conditions.join(" AND ");
+    }
+
+    query += " ORDER BY timestamp DESC LIMIT ?";
+    params.push(limit);
+
+    const rows = this.db
+      .query<
+        {
+          id: number;
+          timestamp: number;
+          total_value_usd: number;
+          state_json: string;
+        },
+        (number | string)[]
+      >(query)
+      .all(...params);
+
+    return rows.map((row) => ({
+      id: row.id,
+      timestamp: row.timestamp,
+      totalValueUsd: row.total_value_usd,
+      stateJson: row.state_json,
+    }));
   }
 }
 

@@ -3,9 +3,8 @@ import { Card, CardHeader, CardTitle } from '../../components/ui/Card';
 import { LineChart } from '../../components/ui/Charts/LineChart';
 import { SkeletonChart } from '../../components/ui/Skeleton';
 import { formatCurrency } from '../../lib/utils';
-import { portfolioService } from '../../api';
 import { POLLING_INTERVALS } from '../../lib/constants';
-import type { PortfolioHistoryItem, PaginatedResponse, ProcessedHistoryItem } from '../../types/api';
+import type { ProcessedHistoryItem } from '../../types/api';
 
 const timeRanges = [
   { label: '1D', value: '24h' },
@@ -15,9 +14,25 @@ const timeRanges = [
   { label: 'ALL', value: 'all' },
 ];
 
+interface StorageHistoryResponse {
+  data: Array<{
+    timestamp: number; // milliseconds
+    value: number;
+    state: unknown;
+  }>;
+  pagination: {
+    limit: number;
+    has_more: boolean;
+    filters: {
+      start_time: number | null;
+      end_time: number | null;
+    };
+  };
+}
+
 // Get API parameters based on selected time range
-// API expects Unix timestamps in seconds (not milliseconds)
-function getRangeParams(range: string): { start_time?: number; end_time?: number; limit?: number } {
+// API expects Unix timestamps in seconds
+function getRangeParams(range: string): { start_time?: number; end_time?: number; limit: number } {
   const nowSec = Math.floor(Date.now() / 1000);
   const hourSec = 60 * 60;
   const daySec = 24 * hourSec;
@@ -27,31 +42,30 @@ function getRangeParams(range: string): { start_time?: number; end_time?: number
       return { 
         start_time: nowSec - 7 * daySec, 
         end_time: nowSec,
-        limit: 100 
+        limit: 500 
       };
     case '30d':
       return { 
         start_time: nowSec - 30 * daySec, 
         end_time: nowSec,
-        limit: 100 
+        limit: 500 
       };
     case '90d':
       return { 
         start_time: nowSec - 90 * daySec, 
         end_time: nowSec,
-        limit: 100 
+        limit: 1000 
       };
     case 'all':
       return { 
-        // Don't set start_time to get all history
-        end_time: nowSec,
-        limit: 200 
+        // Don't set time filters to get all history
+        limit: 1000 
       };
     default: // '24h'
       return { 
         start_time: nowSec - daySec, 
         end_time: nowSec,
-        limit: 100 
+        limit: 500 
       };
   }
 }
@@ -95,41 +109,47 @@ function getDateFormatter(range: string): (ts: number) => string {
   };
 }
 
-// Process API response to calculate total portfolio value for each timestamp
-function processHistoryData(data: PortfolioHistoryItem[]): ProcessedHistoryItem[] {
-  return data.map((item) => {
-    // Calculate total value by summing all token values across all accounts and connectors
-    let totalValue = 0;
-    
-    if (item.state) {
-      Object.values(item.state).forEach((account) => {
-        Object.values(account).forEach((connectorBalances) => {
-          if (Array.isArray(connectorBalances)) {
-            connectorBalances.forEach((token) => {
-              totalValue += token.value || 0;
-            });
-          }
-        });
-      });
-    }
-
-    return {
-      timestamp: new Date(item.timestamp).getTime(),
-      value: totalValue,
-    };
-  }).sort((a, b) => a.timestamp - b.timestamp); // Sort by timestamp ascending
-}
-
 export function PortfolioChart() {
   const [selectedRange, setSelectedRange] = useState('24h');
-  const [history, setHistory] = useState<PaginatedResponse<PortfolioHistoryItem> | null>(null);
+  const [history, setHistory] = useState<StorageHistoryResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const params = useMemo(() => getRangeParams(selectedRange), [selectedRange]);
 
   const fetchHistory = useCallback(async () => {
     try {
-      const result = await portfolioService.getHistory(params);
+      // Build query string
+      const queryParams = new URLSearchParams();
+      if (params.start_time !== undefined) {
+        queryParams.set('start_time', String(params.start_time));
+      }
+      if (params.end_time !== undefined) {
+        queryParams.set('end_time', String(params.end_time));
+      }
+      queryParams.set('limit', String(params.limit));
+
+      const queryString = queryParams.toString();
+      const url = `/storage/portfolio-history${queryString ? `?${queryString}` : ''}`;
+
+      // Get auth from localStorage
+      const storedAuth = localStorage.getItem('hb_auth_credentials');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (storedAuth) {
+        const decoded = atob(storedAuth);
+        const credentials = JSON.parse(decoded);
+        headers['Authorization'] = 'Basic ' + btoa(`${credentials.username}:${credentials.password}`);
+      }
+
+      const response = await fetch(url, { headers });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+
+      const result: StorageHistoryResponse = await response.json();
       setHistory(result);
     } catch (error) {
       console.error('Failed to fetch portfolio history:', error);
@@ -153,9 +173,14 @@ export function PortfolioChart() {
     return () => clearInterval(intervalId);
   }, [fetchHistory]);
 
-  const chartData = useMemo(() => {
-    if (!history?.data) return [];
-    return processHistoryData(history.data);
+  const chartData: ProcessedHistoryItem[] = useMemo(() => {
+    if (!history?.data || history.data.length === 0) return [];
+    
+    // Data is already sorted by the API, just map to the expected format
+    return history.data.map((item) => ({
+      timestamp: item.timestamp,
+      value: item.value,
+    }));
   }, [history?.data]);
 
   // Calculate change

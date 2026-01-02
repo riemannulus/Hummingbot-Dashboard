@@ -147,3 +147,57 @@ export const clearChatHistory = withAuth(async (_req: Request): Promise<Response
   }
 });
 
+/**
+ * GET /storage/portfolio-history - Get portfolio history snapshots
+ * Query params:
+ *   - start_time: Unix timestamp (seconds) for range start
+ *   - end_time: Unix timestamp (seconds) for range end
+ *   - limit: Maximum number of records to return (default: 200)
+ */
+export const getPortfolioHistory = withAuth(async (req: Request): Promise<Response> => {
+  try {
+    const url = new URL(req.url);
+    const startTimeParam = url.searchParams.get("start_time");
+    const endTimeParam = url.searchParams.get("end_time");
+    const limitParam = url.searchParams.get("limit");
+
+    const startTime = startTimeParam ? parseInt(startTimeParam, 10) : undefined;
+    const endTime = endTimeParam ? parseInt(endTimeParam, 10) : undefined;
+    const limit = limitParam ? parseInt(limitParam, 10) : 200;
+
+    const storage = await getStorage();
+    const history = await storage.getPortfolioHistory(startTime, endTime, limit);
+
+    // Transform to match the format expected by the frontend
+    const data = history.map((snapshot) => ({
+      timestamp: snapshot.timestamp * 1000, // Convert to milliseconds for JS Date
+      value: snapshot.totalValueUsd,
+      state: snapshot.stateJson ? JSON.parse(snapshot.stateJson) : null,
+    }));
+
+    // Sort by timestamp ascending for chart display
+    data.sort((a, b) => a.timestamp - b.timestamp);
+
+    return new Response(
+      JSON.stringify({
+        data,
+        pagination: {
+          limit,
+          has_more: history.length >= limit,
+          filters: {
+            start_time: startTime || null,
+            end_time: endTime || null,
+          },
+        },
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("Error getting portfolio history:", error);
+    return new Response(
+      JSON.stringify({ error: "Failed to get portfolio history" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
+});
+
